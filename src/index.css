@@ -31,3 +31,7 @@ code {
   cursor: pointer;
   transition: color 0.3s;
 }
+
+.sider-toggle:hover {
+  color: #1890ff;
+}
