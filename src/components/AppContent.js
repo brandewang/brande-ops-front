@@ -2,6 +2,8 @@ import React, { Component } from 'react'
 import { Switch, Route, Redirect } from 'react-router-dom'
 import AppMgr from './AppMgr'
 import AppGrpMgr from './AppGrpMgr'
+import AppGrpEdit from './AppGrpEdit'
+
 
 
 class AppContent extends Component {
@@ -10,7 +12,8 @@ class AppContent extends Component {
             <div>
                 <Switch>
                     <Route path='/App/AppMgr' component={AppMgr}></Route>
-                    <Route path='/App/AppGrpMgr' component={AppGrpMgr}></Route>
+                    <Route exact path='/App/AppGrpMgr' component={AppGrpMgr}></Route>
+                    <Route path='/App/AppGrpMgr/:id' component={AppGrpEdit}></Route>
                     <Redirect to='/App/AppMgr'></Redirect>
                     {/* <Route render={() => <h3>Page Not Found</h3>}></Route> */}
                 </Switch>

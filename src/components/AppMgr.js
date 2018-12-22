@@ -13,11 +13,11 @@ const AppCreateForm = Form.create()(
     class extends React.Component {
         render() {
             const {
-                visible, onCancel, onCreate, form, loading, 
+                visible, onCancel, onCreate, form, loading, title, appgrp_data
             } = this.props;
             const { getFieldDecorator } = form
             return (
-                <Modal  visible={visible} title={this.props.title} okText="Create" onCancel={onCancel} onOk={onCreate} confirmLoading={loading}>
+                <Modal  visible={visible} title={title} okText="Submit" onCancel={onCancel} onOk={onCreate} confirmLoading={loading}>
                     <Form layout="vertical">
                         <Item label="项目名" style={{marginBottom: 0}}>
                         {getFieldDecorator('name', {
@@ -31,6 +31,16 @@ const AppCreateForm = Form.create()(
                             rules: [{ required: true, message: 'Please input the app_giturl!' }],
                         })(
                             <Input />
+                        )}
+                        </Item>
+                        <Item label="应用组" style={{marginBottom: 0}}>
+                        {getFieldDecorator("group", {
+                            initialValue: appgrp_data.length > 0 ? appgrp_data[0].id : '',
+                            // initialValue: 1
+                        })(
+                            <Select>
+                                {appgrp_data.map((item) => <Option key={item.id} value={item.id}>{item.name}</Option>)}
+                            </Select>
                         )}
                         </Item>
                         <Item label="项目类型" style={{marginBottom: 0}}>
@@ -55,21 +65,21 @@ const AppCreateForm = Form.create()(
                         </Item>
                         <Item label="配置覆盖" style={{marginBottom: 0}}>
                         {getFieldDecorator('cover', {
-                            initialValue: '0',
+                            initialValue: 0,
                         })(
                             <Radio.Group>
-                            <Radio value="1">是</Radio>
-                            <Radio value="0">否</Radio>
+                            <Radio value={1}>是</Radio>
+                            <Radio value={0}>否</Radio>
                             </Radio.Group>
                         )}
                         </Item>
                         <Item label="应用监控" style={{marginBottom: 0}}>
                         {getFieldDecorator('monitor', {
-                            initialValue: '0',
+                            initialValue: 0,
                         })(
                             <Radio.Group>
-                            <Radio value="1">是</Radio>
-                            <Radio value="0">否</Radio>
+                            <Radio value={1}>是</Radio>
+                            <Radio value={0}>否</Radio>
                             </Radio.Group>
                         )}
                         </Item>
@@ -88,6 +98,7 @@ class AppMgr extends Component {
         url: 'http://127.0.0.1:8000/api/app/',
         // url: 'http://127.0.0.1:8000/api/test/',
         data: [],
+        appgrp_data: [],
         pagination: {},
         filterInfo: {
             name: '',
@@ -100,7 +111,8 @@ class AppMgr extends Component {
     }
 
     componentDidMount () {
-        this.fetch()
+        this.fetch();
+        this.fetchAppGrp();
     }
 
     fetch (params = {}) {
@@ -127,76 +139,14 @@ class AppMgr extends Component {
             })
     }
 
-    handleChange = (pagination, filters, sorter) => {
-        console.log('Various parameters', pagination, filters, sorter);
-        const pager = {...this.state.pagination};
-        pager.current = pagination.current;
-        this.setState({
-            pagination: pager,
+    fetchAppGrp () {
+        axios.get(
+            'http://127.0.0.1:8000/api/appgrp/?size=100',
+        ).then((response) => {
+            this.setState({appgrp_data: response.data.results})
+        }).catch((err) => {
+            console.log(err)
         })
-        this.fetch({
-            page: pagination.current,
-            ...this.state.filterInfo,
-        })
-    }
-
-    handleCreateLoading = () => {
-        this.setState({
-            CreateLoading: !this.state.CreateLoading
-        })
-    }
-
-    showCreateModal = () => {
-        this.setState({
-            CreateVisible: true
-        })
-    }
-
-    handleCreateCancel = () => {
-        this.setState({
-            CreateVisible: false,
-        })
-        const form = this.formRef.props.form;
-        form.resetFields();
-        this.setState({
-            method: 'post',
-            editid: '',
-            title: '应用创建'
-        })
-    }
-
-    handleCreateOk = () => {
-        // console.log(this.state.editid, this.state.method)
-        const form = this.formRef.props.form;
-        form.validateFields( (err, values) => {
-            if (err){
-                return;
-            }
-            values.cover = Number(values.cover);
-            values.monitor = Number(values.monitor);
-            const handleCreateLoading = this.handleCreateLoading;
-            handleCreateLoading();
-            const url = this.state.editid ? this.state.url + this.state.editid + '/': this.state.url
-            axios({
-                method: this.state.method,
-                url: url, 
-                data: qs.stringify(values)
-            }).then((response) => {
-                console.log(response);
-                console.log(response.data);
-                form.resetFields();
-                this.fetch({page: this.state.pagination.current, ...this.state.filterInfo})
-                handleCreateLoading();
-            }).catch((error) => {
-                console.log(error);
-                alert('发生错误')
-                handleCreateLoading();
-            });
-        });
-    }
-
-    saveFormRef = (formRef) => {
-        this.formRef = formRef;
     }
 
     handleFilterChange = (e) => {
@@ -227,10 +177,79 @@ class AppMgr extends Component {
         this.setState({pagination: {...this.state.pagination, current:1}})
     }
 
+
+    handleChange = (pagination, filters, sorter) => {
+        console.log('Various parameters', pagination, filters, sorter);
+        const pager = {...this.state.pagination};
+        pager.current = pagination.current;
+        this.setState({
+            pagination: pager,
+        })
+        this.fetch({
+            page: pagination.current,
+            ...this.state.filterInfo,
+        })
+    }
+
+    showCreateModal = () => {
+        this.setState({
+            CreateVisible: true
+        })
+    }
+
+    handleCreateOk = async() => {
+        // console.log(this.state.editid, this.state.method)
+        const form = this.formRef.props.form;
+        form.validateFields( (err, values) => {
+            if (err){
+                return;
+            }
+            values.cover = Number(values.cover);
+            values.monitor = Number(values.monitor);
+            values.group = Number(values.group);
+            this.handleCreateLoading();
+            const url = this.state.editid ? this.state.url + this.state.editid + '/': this.state.url
+            axios({
+                method: this.state.method,
+                url: url, 
+                data: qs.stringify(values)
+            }).then((response) => {
+                console.log(response);
+                console.log(response.data);
+                form.resetFields();
+                this.fetch({page: this.state.pagination.current, ...this.state.filterInfo})
+                this.handleCreateLoading();
+                this.handleCreateCancel();
+            }).catch((error) => {
+                console.log(error);
+                alert('发生错误')
+                this.handleCreateLoading();
+                // this.handleCreateCancel();
+            });
+        });
+    }
+
+    handleCreateCancel = () => {
+        this.setState({
+            CreateVisible: false,
+        })
+        const form = this.formRef.props.form;
+        form.resetFields();
+        this.setState({
+            method: 'post',
+            editid: '',
+            title: '应用创建'
+        })
+    }
+
+    handleCreateLoading = () => {
+        this.setState({
+            CreateLoading: !this.state.CreateLoading
+        })
+    }
+
     handleDelete = (key) => {
-        console.log(key)
         const url = this.state.url + key
-        console.log(url)
         axios.delete(
             url
         ).then((response) => {
@@ -250,8 +269,9 @@ class AppMgr extends Component {
             name : record.name,
             giturl: record.giturl,
             build: record.build,
-            cover: record.cover ? "1" : "0",
-            monitor: record.monitor ? "1" : "0",
+            cover: record.cover ? 1 : 0,
+            monitor: record.monitor ? 1 : 0,
+            group: record.group ? record.group : 1, 
         });
         await this.setState({
             method: 'put',
@@ -261,6 +281,9 @@ class AppMgr extends Component {
         this.showCreateModal()
     }
 
+    saveFormRef = (formRef) => {
+        this.formRef = formRef;
+    }
 
     render () {
         const columns = [{
@@ -346,6 +369,7 @@ class AppMgr extends Component {
                     onCreate={this.handleCreateOk}
                     onLoading={this.handleCreateLoading}
                     title={this.state.title} 
+                    appgrp_data={this.state.appgrp_data}
                 />
                 <List 
                     columns={columns} 
