@@ -43,14 +43,14 @@ class AppGrpEdit extends Component {
                     mockData.push(data)
                 })
                 this.setState({
-                    loading: false,
+                    // loading: false,
                     mockData: mockData,
                 })
             }).catch((err) => {
                 console.log(err)
-                this.setState({
-                    loading: false,
-                })
+                // this.setState({
+                //     loading: false,
+                // })
             })
     }
 
@@ -66,15 +66,15 @@ class AppGrpEdit extends Component {
                     targetKeys.push(item.id)
                 })
                 this.setState({
-                    loading: false,
+                    // loading: false,
                     targetKeys: targetKeys,
                     default_targetKeys: targetKeys,
                 })
             }).catch((err) => {
                 console.log(err)
-                this.setState({
-                    loading: false,
-                })
+                // this.setState({
+                //     loading: false,
+                // })
             })
     }
 
@@ -94,18 +94,18 @@ class AppGrpEdit extends Component {
 
     handleUpdate = () => {
         // console.log('ok')
+        this.setState({loading: true})
         this.state.targetKeys.forEach(item => {
             const appurl = this.state.appurl + item + '/'
             this._patchAppGroup(appurl, {group: this.props.match.params.id})
-            console.log(appurl)
         })
         const {default_targetKeys, targetKeys} = this.state;
         const delTargetKeys = default_targetKeys.filter(el => !targetKeys.includes(el));
         delTargetKeys.forEach(item => {
             const appurl = this.state.appurl + item + '/'
             this._patchAppGroup(appurl, {group: ''})
-            console.log(appurl)
         })
+        setTimeout(() => {this.setState({loading: false})}, 2000)
     }
 
     _patchAppGroup = (url, params={}) => {
@@ -114,15 +114,10 @@ class AppGrpEdit extends Component {
                 url: url, 
                 data: qs.stringify(params),
             }).then((response) => {
-                console.log(response)
-                this.setState({
-                    loading: false,
-                })
+                // console.log(response)
             }).catch((err) => {
                 console.log(err)
-                this.setState({
-                    loading: false,
-                })
+                alert('发生错误')
             })
     }
 
@@ -150,7 +145,7 @@ class AppGrpEdit extends Component {
                     style={{marginBottom:16}}
                 />
                 <Link to="/App/AppGrpMgr/"><Button>Cancel</Button></Link>
-                <Button type="primary" style={{marginLeft:16}} onClick={this.handleUpdate}>Update</Button>
+                <Button loading={this.state.loading} type="primary" style={{marginLeft:16}} onClick={this.handleUpdate}>Update</Button>
             </div>
         )}
     }

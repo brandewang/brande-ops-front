@@ -223,8 +223,12 @@ class AppGrpMgr extends Component {
             title: 'Describe',
             dataIndex: 'describe'
         },{
+            title: 'App Numbers',
+            render: (text, record) => record.app_name.length
+        },{
             title: 'Apps',
             dataIndex: 'app_name',
+            width: '40%',
             render: (text, record) => (
                 this.state.data.length >= 1 
                 ? text.map((app,key) =>  <span key={key}>{app.name}<Divider type="vertical" /></span>)
@@ -232,6 +236,7 @@ class AppGrpMgr extends Component {
             ),
         },{
             title: 'Operation',
+            width: '20%',
             render: (text, record) => (
               this.state.data.length >= 1
                 ? (
