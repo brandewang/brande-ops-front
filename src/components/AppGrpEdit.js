@@ -1,6 +1,6 @@
 import React, { Component } from 'react'
 import { Redirect, Link } from 'react-router-dom';
-import { Transfer, Button } from 'antd'
+import { Transfer, Button, Divider } from 'antd'
 import axios from 'axios';
 import qs from 'qs'
 
@@ -95,12 +95,13 @@ class AppGrpEdit extends Component {
     handleUpdate = () => {
         // console.log('ok')
         this.setState({loading: true})
-        this.state.targetKeys.forEach(item => {
+        const {default_targetKeys, targetKeys} = this.state;
+        const addTargetKeys = targetKeys.filter(el => !default_targetKeys.includes(el));
+        const delTargetKeys = default_targetKeys.filter(el => !targetKeys.includes(el));
+        addTargetKeys.forEach(item => {
             const appurl = this.state.appurl + item + '/'
             this._patchAppGroup(appurl, {group: this.props.match.params.id})
-        })
-        const {default_targetKeys, targetKeys} = this.state;
-        const delTargetKeys = default_targetKeys.filter(el => !targetKeys.includes(el));
+        })      
         delTargetKeys.forEach(item => {
             const appurl = this.state.appurl + item + '/'
             this._patchAppGroup(appurl, {group: ''})
@@ -114,7 +115,7 @@ class AppGrpEdit extends Component {
                 url: url, 
                 data: qs.stringify(params),
             }).then((response) => {
-                // console.log(response)
+                console.log(response)
             }).catch((err) => {
                 console.log(err)
                 alert('发生错误')
@@ -131,7 +132,7 @@ class AppGrpEdit extends Component {
         return (
             <div>
                 <h3>编辑应用组</h3>
-                <hr></hr>
+                <Divider></Divider>
                 {/* <p>{this.props.match.params.id}</p> */}
                 <h4>应用组:{this.state.name}</h4>
                 <Transfer

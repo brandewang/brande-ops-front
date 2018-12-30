@@ -1,14 +1,14 @@
 import React, { Component } from 'react';
-import { Button, Modal, Form, Input, Popconfirm, Divider } from 'antd';
+import { Button, Modal, Form, Select, Input, Popconfirm, Divider } from 'antd';
 import PropTypes from 'prop-types'
 import axios from 'axios'
 import qs from 'qs'
-import List from '../components/List'
+import MyTable from './MyTable'
 
 
 
 const { Item } = Form
-// const { Option } = Select
+const { Option } = Select
 
 
 const AppGrpCreateForm = Form.create()(
@@ -18,6 +18,7 @@ const AppGrpCreateForm = Form.create()(
                 visible, onCancel, onCreate, form, loading, title
             } = this.props;
             const { getFieldDecorator } = form
+            const teams = ['FruitDay', 'OMS', 'TMS', 'SAP', 'PMS', 'GW']
             return (
                 <Modal  visible={visible} title={title} okText="Submit" onCancel={onCancel} onOk={onCreate} confirmLoading={loading}>
                     <Form layout="vertical">
@@ -33,6 +34,15 @@ const AppGrpCreateForm = Form.create()(
                             rules: [{ required: true, message: 'Please input the describe!' }],
                         })(
                             <Input />
+                        )}
+                        </Item>
+                        <Item label="Team" style={{marginBottom: 0}}>
+                        {getFieldDecorator("team", {
+                            initialValue: 'FruitDay',
+                        })(
+                            <Select>
+                                {teams.map((item) => <Option key={item} value={item}>{item}</Option>)}
+                            </Select>
                         )}
                         </Item>
                     </Form>
@@ -194,9 +204,10 @@ class AppGrpMgr extends Component {
         form.setFieldsValue({
             name : record.name,
             describe : record.describe,
+            team: record.team,
         });
         await this.setState({
-            method: 'put',
+            method: 'patch',
             editid: record.id,
             title: '应用组更新'
         })
@@ -217,11 +228,14 @@ class AppGrpMgr extends Component {
             title: 'Name',
             dataIndex: 'name',
             render: (text, record) => (
-                <a onClick={() => this.handleEdit(record)}>{text}</a>
+                <a href="javascript:;" onClick={() => this.handleEditGrp(record)}>{text}</a>
             )
         },{
             title: 'Describe',
             dataIndex: 'describe'
+        },{
+            title: 'Team',
+            dataIndex: 'team'
         },{
             title: 'App Numbers',
             render: (text, record) => record.app_name.length
@@ -241,7 +255,7 @@ class AppGrpMgr extends Component {
               this.state.data.length >= 1
                 ? (
                     <span>
-                        <Popconfirm title="Sure to edit?" onConfirm={() => this.handleEditGrp(record)}>
+                        <Popconfirm title="Sure to edit?" onConfirm={() => this.handleEdit(record)}>
                             <Button icon='edit'>Edit</Button>
                         </Popconfirm>
                         <Divider type="vertical" />
@@ -254,8 +268,9 @@ class AppGrpMgr extends Component {
           }]
         return (
             <div>
-                <h3>应用组管理</h3>
-                <hr></hr>
+                <Divider orientation="left">                
+                    <h3>应用组管理</h3>
+                </Divider>
                 <div className='TableButton' style={{marginBottom:16}}>
                     <Button onClick={this.showCreateModal} icon='plus' style={{marginLeft: 8}}>应用组新增</Button>
                     <Button onClick={this.handleSearch} icon='search' type="primary" style={{marginLeft: 8}}>应用组查询</Button>
@@ -280,7 +295,7 @@ class AppGrpMgr extends Component {
                     title={this.state.title} 
                     appgrp_data={this.state.appgrp_data}
                 />
-                <List 
+                <MyTable 
                     columns={columns} 
                     loading={this.state.loading} 
                     data={this.state.data} 

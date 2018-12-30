@@ -1,11 +1,9 @@
 import React, { Component } from 'react';
 import { Link, Route, Switch, Redirect } from 'react-router-dom'
-import { Layout, Menu, Icon, Row, Col} from 'antd';
-import DashboardHeader from './components/DashboardHeader'
+import { Layout, Menu, Icon, Row, Col } from 'antd';
 import DashboardContent from './components/DashboardContent'
-import AppHeader from './components/AppHeader';
 import AppContent from './components/AppContent';
-import UserHeader from './components/UserHeader';
+import DeployContent from './components/DeployContent';
 import UserContent from './components/UserContent';
 const { Header, Content, Footer, Sider } = Layout;
 const SubMenu = Menu.SubMenu
@@ -41,8 +39,10 @@ class Dashboard extends Component {
                             <span>用户信息</span>
                         </Menu.Item>
                         <Menu.Item key='3'>
-                            <Icon type='deployment-unit'/>
-                            <span>应用发布</span>
+                            <Link to='/Deploy'>
+                                <Icon type='deployment-unit'/>
+                                <span>应用发布</span>
+                            </Link>
                         </Menu.Item>
                         <Menu.Item key='4'>
                             <Icon type='fire'/>
@@ -73,7 +73,7 @@ class Dashboard extends Component {
                     </Menu>
                 </Sider>
                 <Layout>
-                    <Header style={{background:'#fff'}}>
+                    <Header style={{ position: 'fixed', zIndex: 1, width: '100%', background:'#f0f2f5' }}>
                         <Row>
                             <Col span={2}>
                                 <Icon className='sider-toggle' type={this.state.collapsed ? 'menu-unfold' : 'menu-fold'} onClick={this.toggle}/>
@@ -90,25 +90,20 @@ class Dashboard extends Component {
                             </Col>
                         </Row>
                     </Header>
-                    <Layout>
-                    <Header style={{background:'#f0f2f5'}}>
-                            <Route exact path='/' component={DashboardHeader}/>
-                            <Route path='/App' component={AppHeader}/>
-                            <Route path='/User' component={UserHeader}/>
-                    </Header>
-                    <Content style={{ margin:'0 10px', padding: 24, background: '#fff', minHeight: 580}}>
-                        <Switch>
-                            <Route exact path='/' component={DashboardContent}/>
-                            <Route path='/App' component={AppContent}/>
-                            <Route path='/User' component={UserContent}/>
-                            {/* <Route path='/test02/:location' component={test02}/> */}
-                            <Redirect to='/' />
-                        </Switch>
+                    <Content style={{ margin:'64px 16px 0px 16px', padding: 24, background: '#fff', minHeight: 580}}>
+                        <div>                           
+                            <Switch>
+                                <Route exact path='/' component={DashboardContent}/>
+                                <Route path='/App' component={AppContent}/>
+                                <Route path='/User' component={UserContent}/>
+                                <Route path='/Deploy' component={DeployContent}/>
+                                <Redirect to='/' />
+                            </Switch>
+                        </div> 
                     </Content>
                     <Footer style={{ textAlign: 'center' }}>
                         Ant Design ©2018 Created by Ant UED
                     </Footer>
-                    </Layout>
                 </Layout>
             </Layout>
         )

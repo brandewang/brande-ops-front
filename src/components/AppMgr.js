@@ -1,8 +1,8 @@
 import React, { Component } from 'react';
-import { Button, Modal, Form, Input, Radio, Select, Popconfirm, Divider } from 'antd';
+import { Button, Modal, Form, Input, InputNumber, Radio, Select, Popconfirm, Divider } from 'antd';
 import axios from 'axios'
 import qs from 'qs'
-import List from '../components/List'
+import MyTable from './MyTable'
 
 
 
@@ -24,6 +24,11 @@ const AppCreateForm = Form.create()(
                             rules: [{ required: true, message: 'Please input the app_name!' }],
                         })(
                             <Input />
+                        )}
+                        </Item>
+                        <Item label="Git项目ID" style={{marginBottom: 0}}>
+                        {getFieldDecorator('git_id', { initialValue: 361 })(
+                            <InputNumber min={1} max={1000} />
                         )}
                         </Item>
                         <Item label="Git仓库地址" style={{marginBottom: 0}}>
@@ -267,6 +272,7 @@ class AppMgr extends Component {
         const form = this.formRef.props.form;
         form.setFieldsValue({
             name : record.name,
+            git_id: record.git_id,
             giturl: record.giturl,
             build: record.build,
             cover: record.cover ? 1 : 0,
@@ -274,7 +280,7 @@ class AppMgr extends Component {
             group: record.group ? record.group : 1, 
         });
         await this.setState({
-            method: 'put',
+            method: 'patch',
             editid: record.id,
             title: '应用更新'
         })
@@ -290,6 +296,9 @@ class AppMgr extends Component {
             title: 'Name',
             dataIndex: 'name',
             // sorter: (a, b) => a.name.length - b.name.length,
+        },{
+            title: 'Git_ID',
+            dataIndex: 'git_id'
         },{
             title: 'GitUrl',
             dataIndex: 'giturl'
@@ -337,8 +346,9 @@ class AppMgr extends Component {
 
         return (
             <div>
-                <h3>应用管理</h3>
-                <hr></hr>
+                <Divider orientation="left">
+                    <h3>应用管理</h3>
+                </Divider>
                 <div className='TableButton' style={{marginBottom:16}}>
                     <Button onClick={this.showCreateModal} icon='plus' style={{marginLeft: 8}}>应用新增</Button>
                     <Button onClick={this.handleSearch} icon='search' type="primary" style={{marginLeft: 8}}>应用查询</Button>
@@ -371,7 +381,7 @@ class AppMgr extends Component {
                     title={this.state.title} 
                     appgrp_data={this.state.appgrp_data}
                 />
-                <List 
+                <MyTable 
                     columns={columns} 
                     loading={this.state.loading} 
                     data={this.state.data} 
