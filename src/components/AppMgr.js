@@ -327,6 +327,7 @@ class AppMgr extends Component {
             dataIndex: 'group_name',
         },{
             title: 'Operation',
+            width: '20%',
             render: (text, record) => (
               this.state.data.length >= 1
                 ? (

@@ -1,6 +1,10 @@
 import React, { Component } from 'react'
-import { Divider, Tag, Select, Icon, List, Button, Timeline, Row, Col } from 'antd'
+import { Divider, Tag, Select, Icon, List, Button, Timeline, Row, Col, Modal, message } from 'antd'
 import axios from 'axios'
+import qs from 'qs'
+import io from 'socket.io-client';
+
+
 
 // axios.defaults.headers.common['token'] = 'DKqR6HK-ktaiWUiRM4xF';
 
@@ -12,7 +16,12 @@ class DeployBuild extends Component {
         app_url: 'http://127.0.0.1:8000/api/app/',
         gitlab_url: 'http://gitlab.corp.fruitday.com/api/v4/projects/',
         get_modules_url: 'http://127.0.0.1:8000/api/gitlab/get_modules/',
+        deploy_package_url: 'http://127.0.0.1:8000/api/deploy/deploy_package/',
+        deploy_package_delete_url: 'http://127.0.0.1:8000/api/deploy/deploy_package_delete/',
+        package_history_url: 'http://127.0.0.1:8000/api/package/',
+        package_log_url: 'http://127.0.0.1:8000/data/logs/package/',
         gitlab_token: 'DKqR6HK-ktaiWUiRM4xF',
+        git_id: '',
         branch: {},
         branches: [],
         commits: [],
@@ -22,8 +31,12 @@ class DeployBuild extends Component {
         env: 'test',
         module: '',
         modules: [],
+        package_history: [],
+        log_visible: false,
+        log_content: '',
+        log_title: '',
     }
-    async componentWillMount () {
+    componentWillMount () {
         const url =  this.state.app_url + this.props.match.params.id
         axios.get(url,
             ).then((response) => {
@@ -45,6 +58,7 @@ class DeployBuild extends Component {
             }).catch((err) => {
                 console.log(err)
             })
+        this.fetchPackageHistory(this.state.package_history_url, {size:50, app_id: this.props.match.params.id})
     }
 
     fetchBranches (url, token, params={}) {
@@ -88,6 +102,19 @@ class DeployBuild extends Component {
         })
     }
 
+    fetchPackageHistory (url, params={}) {
+        axios.get(url,
+            {params: {...params}}
+        ).then((response) => {
+            // console.log(response.data.results)
+            this.setState({
+                package_history: response.data.results
+            })
+        }).catch((err) => {
+            console.log(err)
+        })
+    }
+
     handleChange = (value) => {
         // console.log(value)
         const { branches, gitlab_url, gitlab_token, git_id } = this.state
@@ -106,12 +133,99 @@ class DeployBuild extends Component {
         this.setState({module: value})
     }
 
+    // openNotification = (message, description, type, color) => {
+    //     notification.open({
+    //       message: message,
+    //       description: description,
+    //       duration: 4,
+    //       icon: <Icon type={type} style={{ color: color }} />,
+    //     });
+    //   };
+
     handlePacking = (short_id) => {
+        // deploy = DeployAct(app_seq, app_id, app_name, module, git_url, short_id, branch, env, type)
         this.setState({packing_lock: true})
-        const {app_info, branch, env} = this.state
-        console.log(short_id, app_info.id, app_info.name, branch.name, env, this.state.module)
-        setTimeout(() => this.setState({packing_lock: false}), 5000)
+        const {app_info, branch, env, deploy_package_url} = this.state
+        // console.log(branch)
+        axios({
+            method: 'post',
+            url: deploy_package_url, 
+            data: qs.stringify({ 
+                app_id: app_info.id, 
+                app_name: app_info.name,
+                module: this.state.module,
+                git_url: app_info.giturl,
+                short_id: short_id,
+                branch: branch.name,
+                env: env,
+                type: app_info.type,
+            })
+        }).then((response) => {
+            console.log('packing', response)
+            response.data ? message.success('打包成功', 5) : message.error('打包失败', 5)
+            // response.data ? this.openNotification('打包成功', '打包成功', 'smile', '#108ee9') : this.openNotification('打包失败', '打包失败', 'frown', '#eb2f96')
+            this.setState({packing_lock: false})
+            this.fetchPackageHistory(this.state.package_history_url, {size:50, app_id: this.props.match.params.id})
+        }).catch((err) => {
+            console.log(err)
+            message.error('打包失败', 5)
+            // this.openNotification('打包失败', '打包失败', 'frown', '#eb2f96')
+            this.setState({packing_lock: false})
+            this.fetchPackageHistory(this.state.package_history_url, {size:50, app_id: this.props.match.params.id})
+        })
+        // console.log(short_id, git_id, app_info, branch.name, env, this.state.module)
+        // setTimeout(() => this.setState({packing_lock: false}), 5000)
     }
+
+    handleLogShow = (app_name, tag) =>{
+        const url = this.state.package_log_url + app_name + '/' + tag + '.log'
+        console.log(url)
+
+        axios.get(
+            url,
+        ).then((response) =>{
+            this.setState({
+                log_visible: true,
+                log_title: tag,
+                log_content: response.data.replace(/\n/g,'<br/>')
+            })
+            console.log(response.data)
+        }).catch((err) => {
+            console.log(err)
+        })
+    }
+
+    handleLogCancel = () => {
+        this.setState({ log_visible: false });
+      }
+
+    handlePackageDelete = (package_id) =>{
+        const url = this.state.deploy_package_delete_url
+        axios({
+            method: 'post',
+            url: url,
+            data: qs.stringify({package_id: package_id})
+        }).then((response) => {
+            console.log(response)
+            this.fetchPackageHistory(this.state.package_history_url, {size:50, app_id: this.props.match.params.id})
+        }).catch((err) => {
+            console.log(err)
+            this.fetchPackageHistory(this.state.package_history_url, {size:50, app_id: this.props.match.params.id})
+        })
+    }
+
+    // handleTest = () => {
+    //     const socket = io("http://127.0.0.1:8000", {
+    //         path: '/api/echo_once/',
+    //     });
+
+
+    //     socket.emit('chat message', 'haha');
+
+    //     socket.on('chat message', msg => {
+    //         console.log(msg)
+    //     })
+    // }
 
     render () {
         // console.log(this.state.commits)
@@ -150,7 +264,7 @@ class DeployBuild extends Component {
                 <Col span={3}>
                     <strong>环境选择: </strong><br/>
                     <Select style={{ width: 100 }} value={this.state.env} onChange={this.handleEnvChange}>
-                        <Option value='pro'>生产</Option>
+                        <Option value='product'>生产</Option>
                         <Option value='test'>测试</Option>
                         <Option value='dev'>开发</Option>
                     </Select>
@@ -192,35 +306,27 @@ class DeployBuild extends Component {
                 <h3>打包历史:</h3>
                 <div style={{position:'relative', height:400, overflow:'auto'}}>
                 <Timeline>
-                    <Timeline.Item>Create a services site 2015-09-01</Timeline.Item>
-                    <Timeline.Item>Solve initial network problems 2015-09-01</Timeline.Item>
-                    <Timeline.Item dot={<Icon type="clock-circle-o" style={{ fontSize: '16px' }} />} color="red">Technical testing 2015-09-01</Timeline.Item>
-                    <Timeline.Item>Network problems being solved 2015-09-01</Timeline.Item><Timeline.Item>Create a services site 2015-09-01</Timeline.Item>
-                    <Timeline.Item>Solve initial network problems 2015-09-01</Timeline.Item>
-                    <Timeline.Item dot={<Icon type="clock-circle-o" style={{ fontSize: '16px' }} />} color="red">Technical testing 2015-09-01</Timeline.Item>
-                    <Timeline.Item>Network problems being solved 2015-09-01</Timeline.Item><Timeline.Item>Create a services site 2015-09-01</Timeline.Item>
-                    <Timeline.Item>Solve initial network problems 2015-09-01</Timeline.Item>
-                    <Timeline.Item dot={<Icon type="clock-circle-o" style={{ fontSize: '16px' }} />} color="red">Technical testing 2015-09-01</Timeline.Item>
-                    <Timeline.Item>Network problems being solved 2015-09-01</Timeline.Item><Timeline.Item>Create a services site 2015-09-01</Timeline.Item>
-                    <Timeline.Item>Solve initial network problems 2015-09-01</Timeline.Item>
-                    <Timeline.Item dot={<Icon type="clock-circle-o" style={{ fontSize: '16px' }} />} color="red">Technical testing 2015-09-01</Timeline.Item>
-                    <Timeline.Item>Network problems being solved 2015-09-01</Timeline.Item><Timeline.Item>Create a services site 2015-09-01</Timeline.Item>
-                    <Timeline.Item>Solve initial network problems 2015-09-01</Timeline.Item>
-                    <Timeline.Item dot={<Icon type="clock-circle-o" style={{ fontSize: '16px' }} />} color="red">Technical testing 2015-09-01</Timeline.Item>
-                    <Timeline.Item>Network problems being solved 2015-09-01</Timeline.Item><Timeline.Item>Create a services site 2015-09-01</Timeline.Item>
-                    <Timeline.Item>Solve initial network problems 2015-09-01</Timeline.Item>
-                    <Timeline.Item dot={<Icon type="clock-circle-o" style={{ fontSize: '16px' }} />} color="red">Technical testing 2015-09-01</Timeline.Item>
-                    <Timeline.Item>Network problems being solved 2015-09-01</Timeline.Item><Timeline.Item>Create a services site 2015-09-01</Timeline.Item>
-                    <Timeline.Item>Solve initial network problems 2015-09-01</Timeline.Item>
-                    <Timeline.Item dot={<Icon type="clock-circle-o" style={{ fontSize: '16px' }} />} color="red">Technical testing 2015-09-01</Timeline.Item>
-                    <Timeline.Item>Network problems being solved 2015-09-01</Timeline.Item><Timeline.Item>Create a services site 2015-09-01</Timeline.Item>
-                    <Timeline.Item>Solve initial network problems 2015-09-01</Timeline.Item>
-                    <Timeline.Item dot={<Icon type="clock-circle-o" style={{ fontSize: '16px' }} />} color="red">Technical testing 2015-09-01</Timeline.Item>
-                    <Timeline.Item>Network problems being solved 2015-09-01</Timeline.Item>
+                    {this.state.package_history.map(item => 
+                    <Timeline.Item key={item.id} color={item.status === 'success'  ? 'green' : 'red'}>
+                        {item.status} <a onClick={this.handleLogShow.bind(this, name, item.tag)}>{item.tag}</a>
+                        <br/>{item.create_time} <Icon onClick={this.handlePackageDelete.bind(this, item.id)} type="close-circle" theme="filled" />
+                    </Timeline.Item>)}
                 </Timeline>
                 </div>
                 </Col>
                  </Row>
+                 <Modal
+                    width={800}
+                    visible={this.state.log_visible}
+                    onCancel={this.handleLogCancel}
+                    title={this.state.log_title}
+                    footer=''
+                >
+                    <div style={{position:'relative', height:500, overflow:'auto'}}>
+                        <div dangerouslySetInnerHTML={{__html: this.state.log_content}} />
+                    </div>
+                </Modal>
+                {/* <Button onClick={this.handleTest}>test</Button> */}
                 {/* </div> */}
             </div>
         )
